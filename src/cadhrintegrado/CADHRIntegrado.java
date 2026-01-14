@@ -89,6 +89,7 @@ public class CADHRIntegrado {
      * @author Adam Janah Benyoussef
      * @version 1.0
      * @since 11/12/2025 DD/MM/YYYY
+     * PASAR
      */
     public Integer eliminarRegion(Integer regionId) throws ExcepcionHR {
         int registrosAfectados = 0;
@@ -403,6 +404,7 @@ public class CADHRIntegrado {
      * @param department
      * @return
      * @throws ExcepcionHR
+     * ´PASAR
      */
     public Integer modificarDepartment(Integer departmentId, Department department) throws ExcepcionHR {
         int registrosAfectados = 0;
@@ -453,6 +455,7 @@ public class CADHRIntegrado {
      * @author Adam Janah Benyoussef
      * @version 1.0
      * @since 11/12/2025
+     * PASAR
      */
     public ArrayList<Location> leerLocations() throws ExcepcionHR {
         ArrayList listaLocations = new ArrayList();
