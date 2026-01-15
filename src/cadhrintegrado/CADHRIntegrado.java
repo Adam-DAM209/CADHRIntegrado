@@ -459,4 +459,89 @@ public class CADHRIntegrado {
         }
         return registrosAfectados;
     }
+    
+    
+    /**
+     * Elimina un único registro de la tabla Jobs
+     * @param jobId Identificador de job del registro que se desea eliminar
+     * @return Cantidad de registros eliminados
+     * @throws pojoshr1.ExcepcionHR Se lanzará cuando se produzca un error de base de datos
+     * @author Óscar Eduardo Arango Torres
+     * @version 1.0
+     * @since AaD 1.0
+    */
+    public int eliminarJob(String jobId) throws ExcepcionHR {
+        conectarBD();
+        int registrosAfectados = 0;
+        String dml = "DELETE JOBS WHERE job_id = '" + jobId + "'";
+        try {
+        Statement sentencia = conexion.createStatement();
+        registrosAfectados = sentencia.executeUpdate(dml);
+        sentencia.close();
+        conexion.close();
+          
+        } catch (SQLException ex) {
+            ExcepcionHR e = new ExcepcionHR();
+             e.setCodigoErrorBD(ex.getErrorCode());
+             e.setMensajeErrorBD(ex.getMessage());
+             e.setSentenciaSQL(dml);
+            switch (ex.getErrorCode()) {    
+                case 2292:
+                    e.setMensajeErrorUsuario("No se puede eliminar el trabajo porque tiene empleados o datos históricos asociados");   
+                    break;
+                    
+                default:
+                    e.setMensajeErrorUsuario("Error general del sistema. Consulta con el administrador"); 
+           }
+           throw e; 
+        }
+        return registrosAfectados;
+        }
+    
+    
+    
+    
+    
+    
+       
+     /**
+     * Lee todas los registros de la tabla Jobs
+     * @return Cantidad de registros leídos
+     * @throws pojoshr1.ExcepcionHR Se lanzará cuando se produzca un error de base de datos
+     * @author Óscar Eduardo Arango Torres
+     * @version 1.0
+     * @since AaD 1.0
+    */
+    public ArrayList<Job> leerJobs() throws ExcepcionHR {
+        conectarBD();
+        ArrayList listaJobs = new ArrayList();
+        Job j;
+        String dql = "select * from JOBS";
+        try {
+        Statement sentencia = conexion.createStatement();
+        ResultSet resultado = sentencia.executeQuery(dql);
+        while (resultado.next()) {
+            j = new Job();
+            j.setJobId(resultado.getString("JOB_ID"));
+            j.setJobTitle(resultado.getString("JOB_TITLE"));
+            j.setMaxSalary(resultado.getInt("MAX_SALARY"));
+            j.setMinSalary(resultado.getInt("MIN_SALARY"));
+           
+            listaJobs.add(j);
+            }
+        resultado.close();
+        sentencia.close();
+        conexion.close();
+        
+         
+        } catch (SQLException ex) {
+            ExcepcionHR e = new ExcepcionHR();
+             e.setCodigoErrorBD(ex.getErrorCode());
+             e.setMensajeErrorBD(ex.getMessage());
+             e.setSentenciaSQL(dql);
+             e.setMensajeErrorUsuario("Error general del sistema, consulte con el administrador");
+           throw e; 
+        }
+        return listaJobs;
+    }
 }
