@@ -544,4 +544,116 @@ public class CADHRIntegrado {
         }
         return listaJobs;
     }
+    
+        // --- Insertar Countries
+    public Integer insertarCountry(Country country) throws ExcepcionHR {
+        // Abrir la conexión
+        conectarBD();
+
+        int registrosAfectados = 0;
+
+        // SQL para insertar
+        String dml = "INSERT INTO COUNTRIES (COUNTRY_ID, COUNTRY_NAME, REGION_ID) VALUES (?, ?, ?)";
+
+        try {
+            // Preparar la sentencia
+            PreparedStatement sentenciaPreparada = conexion.prepareStatement(dml);
+            sentenciaPreparada.setString(1, country.getCountryId());       // countryId
+            sentenciaPreparada.setString(2, country.getCountryName());     // countryName
+            sentenciaPreparada.setInt(3, country.getRegion().getRegionId()); // regionId
+
+            // Ejecutar
+            registrosAfectados = sentenciaPreparada.executeUpdate();
+
+            // Cerrar recursos
+            sentenciaPreparada.close();
+            conexion.close();
+
+        } catch (SQLException ex) {
+            // Manejar errores con ExcepcionHR
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dml);
+
+            switch (ex.getErrorCode()) {
+                case 1400: // NOT NULL
+                    e.setMensajeErrorUsuario("El identificador de país no ha sido proporcionado");
+                    break;
+                case 1: // UNIQUE constraint violation
+                    e.setMensajeErrorUsuario("El identificador del país ya existe");
+                    break;
+                case 2291: // foreign key violation
+                    e.setMensajeErrorUsuario("La región indicada no existe");
+                    break;
+                default:
+                    e.setMensajeErrorUsuario("Error general del sistema, consulte con el administrador");
+            }
+
+            throw e;
+        }
+
+        // Devolver número de registros insertados
+        return registrosAfectados;
+    }
+    
+        // --- LEER COUNTRIES
+        public ArrayList<Country> leerCountries() throws ExcepcionHR {
+        // Conectar a la base de datos
+        conectarBD();
+
+        // Lista donde guardaremos los objetos Country
+        ArrayList<Country> listaCountries = new ArrayList<>();
+
+        // Variables auxiliares
+        Country c;
+        Region r;
+
+        // SQL para leer todos los países junto con su región
+        String dql = "SELECT C.COUNTRY_ID, C.COUNTRY_NAME, R.REGION_ID, R.REGION_NAME "
+                   + "FROM COUNTRIES C "
+                   + "INNER JOIN REGIONS R ON C.REGION_ID = R.REGION_ID";
+
+        try {
+            // Crear el Statement
+            Statement sentencia = conexion.createStatement();
+
+            // Ejecutar la consulta
+            ResultSet resultado = sentencia.executeQuery(dql);
+
+            // Recorrer cada fila del resultado
+            while (resultado.next()) {
+                // Crear el objeto Region
+                r = new Region();
+                r.setRegionId(resultado.getInt("REGION_ID"));
+                r.setRegionName(resultado.getString("REGION_NAME"));
+
+                // Crear el objeto Country y asignar la región
+                c = new Country();
+                c.setCountryId(resultado.getString("COUNTRY_ID"));
+                c.setCountryName(resultado.getString("COUNTRY_NAME"));
+                c.setRegion(r);
+
+                // Añadir el Country a la lista
+                listaCountries.add(c);
+            }
+
+            // Cerrar recursos
+            resultado.close();
+            sentencia.close();
+            conexion.close();
+
+        } catch (SQLException ex) {
+            // Capturar y lanzar la excepción personalizada
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dql);
+            e.setMensajeErrorUsuario("Error general del sistema, consulte con el administrador");
+            throw e;
+        }
+
+        // Devolver la lista completa de countries
+        return listaCountries;
+    }
 }
