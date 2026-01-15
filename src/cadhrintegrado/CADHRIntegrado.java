@@ -8,6 +8,7 @@ package cadhrintegrado;
 import java.sql.CallableStatement;
 import pojoshr.ExcepcionHR;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -656,4 +657,104 @@ public class CADHRIntegrado {
         // Devolver la lista completa de countries
         return listaCountries;
     }
+        
+        /*
+        eliminarJOB_HISTORY
+        */
+    
+    public Integer eliminarJobHistory(Integer employeeID, Date startDate) throws ExcepcionHR {
+        conectarBD();
+        int registrosAfectados = 0;
+        String dml = "delete from JOB_HISTORY where EMPLOYEE_ID = ? and START_DATE = ?";
+        
+        try {
+            PreparedStatement sentenciaPreparada = conexion.prepareCall(dml);
+            sentenciaPreparada.setInt(1, employeeID);
+            sentenciaPreparada.setDate(2, startDate);
+            
+            registrosAfectados = sentenciaPreparada.executeUpdate();
+            sentenciaPreparada.close();
+            conexion.close();
+            
+        } catch (SQLException ex) {
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dml);
+            e.setMensajeErrorUsuario("ERROR GENERAL DEL SISTEMA. Consulte con el administrador.");
+            
+            throw e;
+            
+        }
+        return registrosAfectados;
+        
+    }
+    
+    /*
+        leerTodosLosJobHistory
+    */
+    
+    public ArrayList<JobHistory> leerTodosLosJobHistory() throws ExcepcionHR {
+        conectarBD();
+        ArrayList<JobHistory> listaJobHistory = new ArrayList<>();
+        String dql = "select "
+                    +"JH.EMPLOYEE_ID, JH.START_DATE, JH.END_DATE, JH.JOB_ID, JH.DEPARTMENT_ID, "
+                    +"E.FIRST_NAME, E.LAST_NAME, E.EMAIL, "
+                    +"J.JOB_TITLE, "
+                    +"D.DEPARTMENT_NAME "
+                    +"from JOB_HISTORY JH " 
+                    +"left join EMPLOYEES E on JH.EMPLOYEE_ID = E.EMPLOYEE_ID "
+                    +"left join JOBS J on JH.JOB_ID = J.JOB_ID "
+                    +"left join DEPARTMENTS D on JH.DEPARTMENT_ID = D.DEPARTMENT_ID " 
+                    +"order by JH.EMPLOYEE_ID, JH.START_DATE";
+        
+        try {
+            Statement sentencia = conexion.createStatement();
+            ResultSet resultado = sentencia.executeQuery(dql);
+            
+            while (resultado.next()) {
+                // Creamos el objeto Employee
+                Employee empleado = new Employee();
+                empleado.setEmployeeId(resultado.getInt("EMPLOYEE_ID"));
+                empleado.setFirstName(resultado.getString("FIRST_NAME"));
+                empleado.setLastName(resultado.getString("LAST_NAME"));
+                empleado.setEmail(resultado.getString("EMAIL"));
+                
+                // Creación del objeto Job
+                Job job = new Job();
+                job.setJobId(resultado.getString("JOB_ID"));
+                job.setJobTitle(resultado.getString("JOB_TITLE"));
+                
+                // Creación del objeto Department (puede ser NULL)
+                Department departamento = null;
+                Integer deptId = resultado.getInt("DEPARTMENT_ID");
+                if (!resultado.wasNull()) {
+                    departamento = new Department();
+                    departamento.setDepartmentId(deptId); 
+                    departamento.setDepartmentName(resultado.getString("DEPARTMENT_NAME"));
+                    
+                }
+                
+                // Creación y configuración de JobHistory
+                JobHistory jobHistory = new JobHistory(empleado, resultado.getDate("START_DATE"), resultado.getDate("END_DATE"), job, departamento);
+                listaJobHistory.add(jobHistory);
+                
+            }
+            
+            resultado.close();
+            sentencia.close();
+            conexion.close();
+            
+        } catch (SQLException ex) {
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dql);
+            e.setMensajeErrorUsuario("Error al leer el historial de trabajos. Consulte con el administrador");
+            throw e;
+        }
+        return listaJobHistory;
+        
+    }
+        
 }
