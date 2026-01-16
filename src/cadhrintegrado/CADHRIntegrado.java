@@ -858,4 +858,64 @@ public class CADHRIntegrado {
         }
     	return registrosAfectados;
     }
+    
+    public ArrayList<Region> leerRegions() throws ExcepcionHR {
+        conectarBD();
+        ArrayList<Region> listaRegions = new ArrayList<>();
+
+        String dql = "SELECT * FROM REGIONS";
+
+        try {
+            Statement sentencia = conexion.createStatement();
+            ResultSet resultado = sentencia.executeQuery(dql);
+
+            while (resultado.next()) {
+                Region r = new Region();
+                r.setRegionId(resultado.getInt("REGION_ID"));
+                r.setRegionName(resultado.getString("REGION_NAME"));
+
+                listaRegions.add(r);
+            }
+
+            resultado.close();
+            sentencia.close();
+            conexion.close();
+
+        } catch (SQLException ex) {
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dql);
+            e.setMensajeErrorUsuario("Error al leer las regiones");
+            throw e;
+        }
+        return listaRegions;
+    }
+    
+    public Integer insertarRegion(Region region) throws ExcepcionHR {
+        conectarBD();
+        int registrosAfectados = 0;
+        String dmlOracle = "insert into REGIONS(REGION_ID, REGION_NAME) values (SECUENCIA_REGION_ID.nextval, ?)";
+        //String dmlMYSQL = "insert into REGIONS(REGION_NAME) values (?)";
+        try {
+            PreparedStatement sentenciaPreparada = conexion.prepareStatement(dmlOracle);
+            sentenciaPreparada.setString(1, region.getRegionName());
+
+            registrosAfectados = sentenciaPreparada.executeUpdate();
+
+            sentenciaPreparada.close();
+            conexion.close();
+
+        } catch (SQLException ex) {
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dmlOracle);
+            e.setMensajeErrorUsuario("Error general del sistema. Consulte con el administrador");
+           
+            throw e;
+        }
+
+        return registrosAfectados;
+    }
 }
