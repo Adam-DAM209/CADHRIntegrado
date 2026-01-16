@@ -754,7 +754,108 @@ public class CADHRIntegrado {
             throw e;
         }
         return listaJobHistory;
-        
     }
+           /**
+     * 
+     * @param locationId Int que servirá para buscar 
+     * @return Devuelve la localización si existe su identificador, si no encuentra ninguna localización, devuleve null.
+     * @throws ExcepcionHR Se lanzará cuando se produzca una excepción SQL.
+     */
+    public Location leerLocation(int locationId) throws ExcepcionHR
+    {
+    	conectarBD();
+    	String dql = "select * from REGIONS R, COUNTRIES C, LOCATIONS L "
+                + "where R.REGION_ID=C.REGION_ID and C.COUNTRY_ID=L.COUNTRY_ID and L.LOCATION_ID=" + locationId;
+    	Location l = null;
+        Country c = null;
+        Region r = null;
+        try
+        {
+            Statement sentencia = conexion.createStatement();
+            ResultSet resultado = sentencia.executeQuery(dql);
+ 
+            if(resultado.next())
+            {
+            	  l = new Location();
+                  l.setLocationId(resultado.getInt("LOCATION_ID"));
+                  l.setStreetAdress(resultado.getString("STREET_ADDRESS"));
+                  l.setPostalCode(resultado.getString("POSTAL_CODE"));
+                  l.setCity(resultado.getString("CITY"));
+                  l.setStateProvince(resultado.getString("STATE_PROVINCE"));
+                      
+                  c = new Country();
+                  c.setCountryId(resultado.getString("COUNTRY_ID"));
+                  c.setCountryName(resultado.getString("COUNTRY_NAME"));
+                      
+                  r = new Region();
+                  r.setRegionId(resultado.getInt("REGION_ID"));
+                  r.setRegionName(resultado.getString("REGION_NAME"));
+                  c.setRegion(r);
+                  l.setCountry(c);
+            }
+
+            sentencia.close();
+            conexion.close();
+            
+        }
+        catch (SQLException ex)
+        {
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dql);
+            e.setMensajeErrorUsuario("Error general del sistema. Consulte con el admiinistrador ");
+            throw e;
+        }
+        return l;
+    }
+    
+    /**
+     * 
+     * @param locationId Identificador de la tupla que se modificará
+     * @param location Objeto de tipo "Location" con los datos que reemplazarán al antiguo
+     * @return Integer con la cantidad de registros actualizados
+     * @throws ExcepcionHR Se lanzará cuando se produzca una excepción SQL.
+     */
+    public Integer modificarLocation(int locationId, Location location) throws ExcepcionHR
+    {
+    	conectarBD();
+    	int registrosAfectados = 0;
+    	String procedimiento = "call MODIFICAR_LOCATION(?,?,?,?,?,?)";
         
+    	try
+    	{
+            CallableStatement sentenciaLlamable = conexion.prepareCall(procedimiento);
+            
+            sentenciaLlamable.setObject(1, locationId, Type.INT);
+            sentenciaLlamable.setString(2, location.getStreetAdress());
+            sentenciaLlamable.setString(3, location.getPostalCode());
+            sentenciaLlamable.setString(4, location.getCity());
+            sentenciaLlamable.setString(5, location.getStateProvince());
+            sentenciaLlamable.setObject(6, location.getCountry().getCountryId());
+            registrosAfectados = sentenciaLlamable.executeUpdate();
+            sentenciaLlamable.close();
+            conexion.close();
+            
+        }
+    	catch (SQLException ex)
+    	{
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(procedimiento);
+            switch (ex.getErrorCode()){
+                case 2291:
+                    e.setMensajeErrorUsuario("El país asociado a esta localización no existe");
+                    break;
+                case 1407:
+                    e.setMensajeErrorUsuario("Es obligatorio que una localización tenga una ciudad.");
+                    break;
+                default:
+                    e.setMensajeErrorUsuario("Error general del sistema. Consulte con el admiinistrador ");
+            }
+            throw e;
+        }
+    	return registrosAfectados;
+    }
 }
