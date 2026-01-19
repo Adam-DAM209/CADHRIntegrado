@@ -1348,4 +1348,51 @@ public class CADHRIntegrado {
         }
     }
 
+    public Job leerJob(String jobId) throws ExcepcionHR {
+        conectarBD();
+        Job j = null;
+
+        String dql = "select * from JOBS J " + "where J.JOB_ID = '" + jobId + "'";
+
+        try {
+
+            Statement sentencia = conexion.createStatement();
+            ResultSet resultado = sentencia.executeQuery(dql);
+
+            if (resultado.next()) {
+
+                j = new Job();
+                j.setJobId(resultado.getString("JOB_ID"));
+                j.setJobTitle(resultado.getString("JOB_TITLE"));
+                j.setMinSalary(resultado.getInt("MIN_SALARY"));
+                j.setMaxSalary(resultado.getInt("MAX_SALARY"));
+            }
+
+            resultado.close();
+            sentencia.close();
+            conexion.close();
+
+        } catch (SQLException ex) {
+
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dql);
+
+            switch (ex.getErrorCode()) {
+                case 2292:
+                    e.setMensajeErrorUsuario("No se puede mostrar el Job porque no existe");
+                    break;
+
+                default:
+                    e.setMensajeErrorUsuario("Error general del sistema. Consulte con el administrador");
+            }
+
+            throw e;
+        }
+
+        return j;
+
+    }
+
 }
