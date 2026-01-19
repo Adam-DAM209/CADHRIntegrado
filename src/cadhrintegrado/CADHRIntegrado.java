@@ -1296,4 +1296,56 @@ public class CADHRIntegrado {
         return c;
     }
 
+    /**
+     * Añade un registro a la tabla Locations
+     *
+     * @param location
+     * @return Cantidad de registros añadidos
+     * @throws pojoshr1.ExcepcionHR Se lanzará cuando se produzca un error de
+     * base de datos
+     * @author Asier Rodriguez González
+     * @version 1.0
+     * @since AaD 1.0
+     */
+    public Integer insertarLocation(Location location) throws ExcepcionHR {
+        conectarBD();
+        int registrosAfectados = 0;
+
+        String dml = "insert into LOCATIONS (LOCATION_ID, STREET_ADDRESS, POSTAL_CODE, CITY, STATE_PROVINCE, COUNTRY_ID) "
+                + "values (LOCATIONS_SEQ.nextval, ?, ?, ?, ?, ?)";
+
+        try {
+            PreparedStatement sentenciaPreparada = conexion.prepareStatement(dml);
+
+            sentenciaPreparada.setString(1, location.getStreetAdress());
+            sentenciaPreparada.setString(2, location.getPostalCode());
+            sentenciaPreparada.setString(3, location.getCity());
+            sentenciaPreparada.setString(4, location.getStateProvince());
+            sentenciaPreparada.setString(5, location.getCountry().getCountryId());
+            registrosAfectados = sentenciaPreparada.executeUpdate();
+
+            sentenciaPreparada.close();
+            conexion.close();
+            return registrosAfectados;
+        } catch (SQLException ex) {
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dml);
+
+            switch (ex.getErrorCode()) {
+                case 1400:
+                    e.setMensajeErrorUsuario("La ciudad es obligatoria");
+                    break;
+                case 2291:
+                    e.setMensajeErrorUsuario("El país indicado no existe");
+                    break;
+                default:
+                    e.setMensajeErrorUsuario("Error general del sistema. Consulte con el administrador");
+            }
+
+            throw e;
+        }
+    }
+
 }
