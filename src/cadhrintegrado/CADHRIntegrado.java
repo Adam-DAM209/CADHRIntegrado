@@ -1056,4 +1056,137 @@ public class CADHRIntegrado {
 
         return e;
     }
+
+    //--------------------------ELIMINAR EMPLOYEES--------------------------------
+    /**
+     * Elimina un único registro de la tabla Employees
+     *
+     * @param employeeId Identificador del empleado que se desea eliminar
+     * @return Cantidad de registros eliminados
+     * @throws ExcepcionHR Se lanzará cuando se produzca un error de base de
+     * datos
+     * @author Marina Leonardo Romero
+     * @version 1.0
+     * @since AaD 1.0
+     */
+    public Integer eliminarEmployee(Integer employeeId) throws ExcepcionHR {
+        conectarBD();
+        int registrosAfectados = 0;
+        String dml = "delete EMPLOYEES where EMPLOYEE_ID = " + employeeId;
+
+        try {
+            Statement sentencia = conexion.createStatement();
+            registrosAfectados = sentencia.executeUpdate(dml);
+
+            sentencia.close();
+            conexion.close();
+
+        } catch (SQLException ex) {
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dml);
+
+            switch (ex.getErrorCode()) {
+                case 2292: //FK
+                    e.setMensajeErrorUsuario("No se puede eliminar el empleado por referencias en el historial, es el manager de un departamento o el jefe de algun empleado.");
+                    break;
+                default:
+                    e.setMensajeErrorUsuario("Error general del sistema. Consulte con el administrador");
+            }
+            throw e;
+        }
+        return registrosAfectados;
+    }
+
+    //--------------------------LEER TODOS EMPLOYEES--------------------------------
+    /**
+     * Devuelve un listado de todos los empleados
+     *
+     * @return ArrayList de empleados
+     * @throws ExcepcionHR Se lanzará cuando se produzca un error de base de
+     * datos
+     * @author Marina Leonardo Romero
+     * @version 1.0
+     * @since AaD 1.0
+     */
+    public ArrayList<Employee> leerEmployees() throws ExcepcionHR {
+
+        conectarBD();
+        ArrayList<Employee> listaEmployees = new ArrayList<>();
+
+        String dql
+                = "SELECT E.*, D.DEPARTMENT_NAME, J.JOB_TITLE, "
+                + "M.EMPLOYEE_ID AS M_EMPLOYEE_ID, "
+                + "M.FIRST_NAME AS M_FIRST_NAME, "
+                + "M.LAST_NAME AS M_LAST_NAME, "
+                + "M.EMAIL AS M_EMAIL, "
+                + "M.PHONE_NUMBER AS M_PHONE_NUMBER, "
+                + "M.HIRE_DATE AS M_HIRE_DATE, "
+                + "M.SALARY AS M_SALARY, "
+                + "M.COMMISSION_PCT AS M_COMMISSION_PCT "
+                + "FROM EMPLOYEES E, DEPARTMENTS D, JOBS J, EMPLOYEES M "
+                + "WHERE E.DEPARTMENT_ID = D.DEPARTMENT_ID "
+                + "AND E.JOB_ID = J.JOB_ID "
+                + "AND E.MANAGER_ID = M.EMPLOYEE_ID";
+
+        try {
+            Statement sentencia = conexion.createStatement();
+            ResultSet resultado = sentencia.executeQuery(dql);
+
+            while (resultado.next()) {
+
+                Employee e = new Employee();
+                e.setEmployeeId(resultado.getInt("EMPLOYEE_ID"));
+                e.setFirstName(resultado.getString("FIRST_NAME"));
+                e.setLastName(resultado.getString("LAST_NAME"));
+                e.setEmail(resultado.getString("EMAIL"));
+                e.setPhoneNumber(resultado.getString("PHONE_NUMBER"));
+                e.setHireDate(resultado.getDate("HIRE_DATE"));
+                e.setSalary(resultado.getFloat("SALARY"));
+                e.setCommissionPCT(resultado.getFloat("COMMISSION_PCT"));
+
+                Department d = new Department();
+                d.setDepartmentId(resultado.getInt("DEPARTMENT_ID"));
+                d.setDepartmentName(resultado.getString("DEPARTMENT_NAME"));
+                e.setDepartmentId(d);
+
+                Job j = new Job();
+                j.setJobId(resultado.getString("JOB_ID"));
+                j.setJobTitle(resultado.getString("JOB_TITLE"));
+                e.setJobId(j);
+
+                if (resultado.getObject("M_EMPLOYEE_ID") != null) {
+                    Employee m = new Employee();
+                    m.setEmployeeId(resultado.getInt("M_EMPLOYEE_ID"));
+                    m.setFirstName(resultado.getString("M_FIRST_NAME"));
+                    m.setLastName(resultado.getString("M_LAST_NAME"));
+                    m.setEmail(resultado.getString("M_EMAIL"));
+                    m.setPhoneNumber(resultado.getString("M_PHONE_NUMBER"));
+                    m.setHireDate(resultado.getDate("M_HIRE_DATE"));
+                    m.setSalary(resultado.getFloat("M_SALARY"));
+                    m.setCommissionPCT(resultado.getFloat("M_COMMISSION_PCT"));
+
+                    e.setManager(m);
+                }
+
+                listaEmployees.add(e);
+            }
+
+            resultado.close();
+            sentencia.close();
+            conexion.close();
+
+        } catch (SQLException ex) {
+            ExcepcionHR exHR = new ExcepcionHR();
+            exHR.setCodigoErrorBD(ex.getErrorCode());
+            exHR.setMensajeErrorBD(ex.getMessage());
+            exHR.setSentenciaSQL(dql);
+            exHR.setMensajeErrorUsuario(
+                    "Error general del sistema. Consulte con el administrador");
+            throw exHR;
+        }
+
+        return listaEmployees;
+    }
 }
