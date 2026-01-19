@@ -1347,7 +1347,7 @@ public class CADHRIntegrado {
             throw e;
         }
     }
-    
+
     /**
      * Lee todas los registros de la tabla Departments
      *
@@ -1499,6 +1499,141 @@ public class CADHRIntegrado {
 
     }
 
-    
+    public ArrayList<Department> leerDepartments() throws ExcepcionHR {
+        conectarBD();
+        ArrayList<Department> listaDepartments = new ArrayList();
+        Department d;
+        Employee e;
+        Job j;
+        Region r;
+        Country c;
+        Location l;
+
+        String dql = "SELECT * FROM DEPARTMENTS D, EMPLOYEES E, LOCATIONS L, JOBS J, REGIONS R, COUNTRIES C "
+                + "WHERE D.MANAGER_ID = E.EMPLOYEE_ID "
+                + // SOLO SE OBTIENEN LOS DEPARTAMENTOS CON MANAGER
+                "AND E.JOB_ID = J.JOB_ID "
+                + "AND D.LOCATION_ID = L.LOCATION_ID "
+                + "AND L.COUNTRY_ID = C.COUNTRY_ID "
+                + "AND C.REGION_ID = R.REGION_ID";
+
+        try {
+            Statement sentencia = conexion.createStatement();
+            ResultSet resultado = sentencia.executeQuery(dql);
+
+            while (resultado.next()) {
+                d = new Department();
+                d.setDepartmentId(resultado.getInt("DEPARTMENT_ID"));
+                d.setDepartmentName(resultado.getString("DEPARTMENT_NAME"));
+
+                j = new Job();
+                j.setJobId(resultado.getString("JOB_ID"));
+                j.setJobTitle(resultado.getString("JOB_TITLE"));
+                j.setMaxSalary(resultado.getInt("MAX_SALARY"));
+                j.setMinSalary(resultado.getInt("MIN_SALARY"));
+
+                e = new Employee();
+                e.setEmployeeId(resultado.getInt("EMPLOYEE_ID"));
+                e.setFirstName(resultado.getString("FIRST_NAME"));
+                e.setLastName(resultado.getString("LAST_NAME"));
+                e.setEmail(resultado.getString("EMAIL"));
+                e.setPhoneNumber(resultado.getString("PHONE_NUMBER"));
+                e.setHireDate(resultado.getDate("HIRE_DATE"));
+                e.setJobId(j);
+                e.setSalary(resultado.getFloat("SALARY"));
+                e.setCommissionPCT(resultado.getFloat("COMMISSION_PCT")); // Cambié a float
+
+                l = new Location();
+                l.setLocationId(resultado.getInt("LOCATION_ID"));
+                l.setStreetAdress(resultado.getString("STREET_ADDRESS")); // Corregí el typo
+                l.setPostalCode(resultado.getString("POSTAL_CODE"));
+                l.setCity(resultado.getString("CITY"));
+                l.setStateProvince(resultado.getString("STATE_PROVINCE"));
+
+                c = new Country();
+                c.setCountryId(resultado.getString("COUNTRY_ID"));
+                c.setCountryName(resultado.getString("COUNTRY_NAME"));
+
+                r = new Region();
+                r.setRegionId(resultado.getInt("REGION_ID"));
+                r.setRegionName(resultado.getString("REGION_NAME"));
+
+                c.setRegion(r);
+                l.setCountry(c);
+                d.setLocation(l);
+                d.setManager(e);
+
+                listaDepartments.add(d);
+            }
+
+            resultado.close();
+            sentencia.close();
+            conexion.close();
+
+        } catch (SQLException ex) {
+            ExcepcionHR exception = new ExcepcionHR();
+            exception.setCodigoErrorBD(ex.getErrorCode());
+            exception.setMensajeErrorBD(ex.getMessage());
+            exception.setSentenciaSQL(dql);
+            exception.setMensajeErrorUsuario("Error general del sistema, consulte con el administrador");
+            throw exception;
+        }
+        return listaDepartments;
+    }
+
+    public void insertarDepartment(Department department) throws ExcepcionHR {
+
+        conectarBD();
+
+        String sql = "INSERT INTO DEPARTMENTS (DEPARTMENT_ID, DEPARTMENT_NAME, LOCATION_ID, MANAGER_ID) "
+                + "VALUES (?, ?, ?, ?)";
+
+        PreparedStatement pstmt = null;
+
+        try {
+
+            pstmt = conexion.prepareStatement(sql);
+
+            pstmt.setInt(1, department.getDepartmentId());
+
+            pstmt.setString(2, department.getDepartmentName());
+
+            pstmt.setObject(3, department.getManager().getEmployeeId(), Type.INT);
+
+            pstmt.setObject(4, department.getLocation().getLocationId(), Type.INT);
+
+            int filasInsertadas = pstmt.executeUpdate();
+
+        } catch (SQLException ex) {
+
+            ExcepcionHR exception = new ExcepcionHR();
+
+            exception.setCodigoErrorBD(ex.getErrorCode());
+
+            exception.setMensajeErrorBD(ex.getMessage());
+
+            exception.setSentenciaSQL(sql);
+
+            // Mensajes de error específicos
+            if (ex.getErrorCode() == 2291) {
+
+                exception.setMensajeErrorUsuario("Error de clave foránea: Verifique que el manager y la ubicación existan");
+
+            } else if (ex.getErrorCode() == 1) {
+
+                exception.setMensajeErrorUsuario("Ya existe un departamento con ese ID");
+
+            } else {
+
+                exception.setMensajeErrorUsuario("Error al insertar el departamento");
+
+            }
+
+            throw exception;
+
+        }
+
+    }
+
 
 }
