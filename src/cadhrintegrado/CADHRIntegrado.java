@@ -1347,6 +1347,110 @@ public class CADHRIntegrado {
             throw e;
         }
     }
+    
+    /**
+     * Lee todas los registros de la tabla Departments
+     *
+     * @param departmentId Identificador de Department del registro que se desea
+     * leer
+     * @return Registro leído
+     * @throws pojoshr1.ExcepcionHR Se lanzará cuando se produzca un error de
+     * base de datos
+     * @author Asier Rodriguez González
+     * @version 1.0
+     * @since AaD 1.0
+     */
+    public Department leerDepartment(Integer departmentId) throws ExcepcionHR {
+        conectarBD();
+        Department d = null;
+        Job j;
+        Employee ep;
+        Region r;
+        Country c;
+        Location l;
+
+        String dql
+                = "select "
+                + "D.DEPARTMENT_ID AS D_DEPARTMENT_ID, D.DEPARTMENT_NAME AS D_DEPARTMENT_NAME, "
+                + "E.EMPLOYEE_ID AS E_EMPLOYEE_ID, E.FIRST_NAME AS E_FIRST_NAME, E.LAST_NAME AS E_LAST_NAME, E.EMAIL AS E_EMAIL,E.PHONE_NUMBER AS E_PHONE_NUMBER, E.HIRE_DATE AS E_HIRE_DATE, "
+                + "J.JOB_ID AS J_JOB_ID, J.JOB_TITLE AS J_JOB_TITLE, J.MIN_SALARY AS J_MIN_SALARY, J.MAX_SALARY AS J_MAX_SALARY, "
+                + "L.LOCATION_ID AS L_LOCATION_ID, L.STREET_ADDRESS AS L_STREET_ADDRESS, L.POSTAL_CODE AS L_POSTAL_CODE, L.CITY AS L_CITY, L.STATE_PROVINCE AS L_STATE_PROVINCE, "
+                + "C.COUNTRY_ID AS C_COUNTRY_ID, C.COUNTRY_NAME AS C_COUNTRY_NAME, "
+                + "R.REGION_ID AS R_REGION_ID, R.REGION_NAME AS R_REGION_NAME "
+                + "from DEPARTMENTS D "
+                + "left JOIN EMPLOYEES E ON D.MANAGER_ID = E.EMPLOYEE_ID "
+                + "left JOIN JOBS J ON E.JOB_ID = J.JOB_ID "
+                + "left JOIN LOCATIONS L ON D.LOCATION_ID = L.LOCATION_ID "
+                + "left JOIN COUNTRIES C ON L.COUNTRY_ID = C.COUNTRY_ID "
+                + "left JOIN REGIONS R ON C.REGION_ID = R.REGION_ID "
+                + "where D.DEPARTMENT_ID = " + departmentId;
+
+        try {
+            Statement sentencia = conexion.createStatement();
+            ResultSet resultado = sentencia.executeQuery(dql);
+
+            if (resultado.next()) {
+                d = new Department();
+                d.setDepartmentId(resultado.getInt("D_DEPARTMENT_ID"));
+                d.setDepartmentName(resultado.getString("D_DEPARTMENT_NAME"));
+
+                // Job
+                j = new Job();
+                j.setJobId(resultado.getString("J_JOB_ID"));
+                j.setJobTitle(resultado.getString("J_JOB_TITLE"));
+                j.setMaxSalary(resultado.getInt("J_MAX_SALARY"));
+                j.setMinSalary(resultado.getInt("J_MIN_SALARY"));
+
+                // Manager
+                ep = new Employee();
+                ep.setEmployeeId(resultado.getInt("E_EMPLOYEE_ID"));
+                ep.setFirstName(resultado.getString("E_FIRST_NAME"));
+                ep.setLastName(resultado.getString("E_LAST_NAME"));
+                ep.setEmail(resultado.getString("E_EMAIL"));
+                ep.setPhoneNumber(resultado.getString("E_PHONE_NUMBER"));
+                ep.setHireDate(resultado.getDate("E_HIRE_DATE"));
+
+                ep.setJobId(j);
+                d.setManager(ep);
+
+                // Región
+                r = new Region();
+                r.setRegionId(resultado.getInt("R_REGION_ID"));
+                r.setRegionName(resultado.getString("R_REGION_NAME"));
+
+                // Country
+                c = new Country();
+                c.setCountryId(resultado.getString("C_COUNTRY_ID"));
+                c.setCountryName(resultado.getString("C_COUNTRY_NAME"));
+
+                c.setRegion(r);
+
+                // Location
+                l = new Location();
+                l.setLocationId(resultado.getInt("L_LOCATION_ID"));
+                l.setStreetAdress(resultado.getString("L_STREET_ADDRESS"));
+                l.setPostalCode(resultado.getString("L_POSTAL_CODE"));
+                l.setCity(resultado.getString("L_CITY"));
+                l.setStateProvince(resultado.getString("L_STATE_PROVINCE"));
+
+                l.setCountry(c);
+                d.setLocation(l);
+            }
+
+            resultado.close();
+            sentencia.close();
+            conexion.close();
+        } catch (SQLException ex) {
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dql);
+            e.setMensajeErrorUsuario("Error general del sistema. Consulte con el administrador");
+            throw e;
+        }
+
+        return d;
+    }
 
     public Job leerJob(String jobId) throws ExcepcionHR {
         conectarBD();
@@ -1394,5 +1498,7 @@ public class CADHRIntegrado {
         return j;
 
     }
+
+    
 
 }
