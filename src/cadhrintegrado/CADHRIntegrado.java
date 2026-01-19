@@ -1189,4 +1189,111 @@ public class CADHRIntegrado {
 
         return listaEmployees;
     }
+
+    /**
+     * Modifica un único registro de la tabla Country
+     *
+     * @param countryId identificador de country del registro que se desea
+     * modificar
+     * @return el registro del country
+     * @throws pojoshr.ExcepcionHR se lanzará cuando se produzca un error de BD
+     * @author Simon Ortiz Gutiérrez
+     * @version 1.0
+     * @since AaD 1.0
+     */
+    public Country modificarCountry(String viejoId, Country country) throws ExcepcionHR {
+
+        String llamada = "call actualizar_country(?,?,?,?)"; // 4 parámetros ahora
+
+        try {
+            CallableStatement sentencia = conexion.prepareCall(llamada);
+
+            sentencia.setString(1, viejoId);
+            sentencia.setString(2, country.getCountryId());
+            sentencia.setString(3, country.getCountryName());
+            sentencia.setObject(4, country.getRegion().getRegionId(), java.sql.Types.INTEGER);
+
+            sentencia.executeUpdate();
+
+            sentencia.close();
+            conexion.close();
+
+            country.setCountryId(viejoId);
+            return country;
+
+        } catch (SQLException ex) {
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(llamada);
+
+            switch (ex.getErrorCode()) {
+                case 2291:
+                    e.setMensajeErrorUsuario("La región indicada no existe");
+                    break;
+                case 1407:
+                    e.setMensajeErrorUsuario("El identificador del pais es obligatorio");
+                    break;
+                case 1:
+                    e.setMensajeErrorUsuario("El identificador del pais no se puede repetir");
+                    break;
+                case 2292:
+                    e.setMensajeErrorUsuario("El pais no se puede modificar porque tiene localizaciones asociadas.");
+                    break;
+                default:
+                    e.setMensajeErrorUsuario("Error general del sistema. Consulte con el administrador");
+            }
+
+            throw e;
+        }
+    }
+
+    /**
+     * Lee un solo registro de la tabla Country
+     *
+     * @param countryId identificador de country del registro que se desea leer
+     * @return el registro del country
+     * @throws pojoshr.ExcepcionHR se lanzará cuando se produzca un error de BD
+     * @author Simon Ortiz Gutiérrez
+     * @version 1.0
+     * @since AaD 1.0
+     */
+    public Country leerCountry(String countryId) throws ExcepcionHR {
+
+        Country c = null;
+        Region r = null;
+        String dml = "select * from COUNTRIES C "
+                + "join REGIONS R on C.REGION_ID = R.REGION_ID where C.COUNTRY_ID = '" + countryId + "'";
+
+        try {
+            Statement sentencia = conexion.createStatement();
+            ResultSet resultado = sentencia.executeQuery(dml);
+
+            if (resultado.next()) {
+                c = new Country();
+                c.setCountryId(resultado.getString("COUNTRY_ID"));
+                c.setCountryName(resultado.getString("COUNTRY_NAME"));
+
+                r = new Region();
+                r.setRegionId(resultado.getInt("REGION_ID"));
+                r.setRegionName(resultado.getString("REGION_NAME"));
+
+                c.setRegion(r);
+            }
+
+            resultado.close();
+            sentencia.close();
+            conexion.close();
+
+        } catch (SQLException ex) {
+            ExcepcionHR e = new ExcepcionHR();
+            e.setCodigoErrorBD(ex.getErrorCode());
+            e.setMensajeErrorBD(ex.getMessage());
+            e.setSentenciaSQL(dml);
+            e.setMensajeErrorUsuario("Error general del sistema. Consulte con el administrador");
+            throw e;
+        }
+        return c;
+    }
+
 }
