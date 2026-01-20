@@ -472,7 +472,7 @@ public class CADHRIntegrado {
      * @version 1.0
      * @since AaD 1.0
      */
-    public int eliminarJob(String jobId) throws ExcepcionHR {
+    public Integer eliminarJob(String jobId) throws ExcepcionHR {
         conectarBD();
         int registrosAfectados = 0;
         String dml = "DELETE JOBS WHERE job_id = '" + jobId + "'";
@@ -688,7 +688,7 @@ public class CADHRIntegrado {
     /*
         leerTodosLosJobHistory
      */
-    public ArrayList<JobHistory> leerTodosLosJobHistory() throws ExcepcionHR {
+    public ArrayList<JobHistory> leerJobHistories() throws ExcepcionHR {
         conectarBD();
         ArrayList<JobHistory> listaJobHistory = new ArrayList<>();
         String dql = "select "
@@ -757,7 +757,7 @@ public class CADHRIntegrado {
      * encuentra ninguna localización, devuleve null.
      * @throws ExcepcionHR Se lanzará cuando se produzca una excepción SQL.
      */
-    public Location leerLocation(int locationId) throws ExcepcionHR {
+    public Location leerLocation(Integer locationId) throws ExcepcionHR {
         conectarBD();
         String dql = "select * from REGIONS R, COUNTRIES C, LOCATIONS L "
                 + "where R.REGION_ID=C.REGION_ID and C.COUNTRY_ID=L.COUNTRY_ID and L.LOCATION_ID=" + locationId;
@@ -809,7 +809,7 @@ public class CADHRIntegrado {
      * @return Integer con la cantidad de registros actualizados
      * @throws ExcepcionHR Se lanzará cuando se produzca una excepción SQL.
      */
-    public Integer modificarLocation(int locationId, Location location) throws ExcepcionHR {
+    public Integer modificarLocation(Integer locationId, Location location) throws ExcepcionHR {
         conectarBD();
         int registrosAfectados = 0;
         String procedimiento = "call MODIFICAR_LOCATION(?,?,?,?,?,?)";
@@ -907,7 +907,7 @@ public class CADHRIntegrado {
         return registrosAfectados;
     }
 
-    public Integer modificarEmpleado(Employee emp) throws ExcepcionHR {
+    public Integer modificarEmpleado(Integer employeeId, Employee emp) throws ExcepcionHR {
         conectarBD();
         int registrosAfectados;
 
@@ -916,7 +916,7 @@ public class CADHRIntegrado {
         try {
             CallableStatement cs = conexion.prepareCall(sql);
 
-            cs.setInt(1, emp.getEmployeeId());
+            cs.setInt(1, employeeId);
             cs.setString(2, emp.getFirstName());
             cs.setString(3, emp.getLastName());
             cs.setString(4, emp.getEmail());
